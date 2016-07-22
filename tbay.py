@@ -56,13 +56,14 @@ victor_fries = User(username="MrFreeze", password="everybody_chill")
 pamela_isley = User(username="PoisonIvy", password="so_little_time")
 
 # Make one user auction a baseball:
-    # 
 baseball = Item(name="baseball", description="A real baseball", owner=victor_fries)
 
 # Have each other user place two bids on the baseball:
-
+starting_bid = Bid(price=50.00, item = baseball, bidder=victor_fries)
 
 # Perform a query to find out which user placed the highest bid:
 
 
-    
+# Add and commit entries to database table:
+session.add_all([edward_nigma, victor_fries, pamela_isley, baseball, starting_bid])
+session.commit()
