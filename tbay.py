@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey, Table
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Float, ForeignKey, Table, desc
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
@@ -9,7 +9,7 @@ session = Session()
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = "user"
+    __tablename__ = "users"
     
     id = Column(Integer, primary_key=True)
     username = Column(String, nullable=False)
@@ -19,7 +19,7 @@ class User(Base):
     bid = relationship("Bid", backref="bidder")
     
 class Item(Base):
-    __tablename__ = "item"
+    __tablename__ = "items"
     
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
@@ -28,16 +28,15 @@ class Item(Base):
     
     bids = relationship("Bid", backref="bid")
     
-    owner_id = Column(Integer, ForeignKey('owner.id'), nullable=False)
+    owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     
 class Bid(Base):
-    __tablename__ = "bid"
+    __tablename__ = "bids"
     
     id = Column(Integer, primary_key=True)
     price = Column(Float, nullable=False)
-    
-    bidder_id = Column(Integer, ForeignKey('bidder.id'), nullable=False)
-    bid_id = Column(Integer, ForeignKey('bid.id'), nullable=False)
+    bidder_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    item_id = Column(Integer, ForeignKey('items.id'), nullable=False)
     
 Base.metadata.create_all(engine)
 
@@ -55,15 +54,30 @@ edward_nigma = User(username="Riddler", password="riddle_me_this")
 victor_fries = User(username="MrFreeze", password="everybody_chill")
 pamela_isley = User(username="PoisonIvy", password="so_little_time")
 
+session.add_all([edward_nigma, victor_fries, pamela_isley])
+session.commit()
+
+session.query(User).all()
+
 # Make one user auction a baseball:
 baseball = Item(name="baseball", description="A real baseball", owner=victor_fries)
+session.add(baseball)
+session.commit()
+print("{} started an auction for {} at {}".format(baseball.owner.username, baseball.name, baseball.start_time))
 
 # Have each other user place two bids on the baseball:
-starting_bid = Bid(price=50.00, item = baseball, bidder=victor_fries)
+starting_bid = Bid(price = 50.00, item_id = baseball.id, bidder = victor_fries)
+riddler_bid = Bid(price = 55.00, item_id = baseball.id, bidder = edward_nigma)
+ivey_bid = Bid(price = 75.00, item_id = baseball.id, bidder = pamela_isley)
+
+bid_list = [riddler_bid, ivey_bid]
+
+session.add(starting_bid)
+session.commit()
+
+for bid in bid_list:
+    print("{} bid on the {} for ${}".format(bid.bidder.username, baseball.name, bid.price))
 
 # Perform a query to find out which user placed the highest bid:
-
-
-# Add and commit entries to database table:
-session.add_all([edward_nigma, victor_fries, pamela_isley, baseball, starting_bid])
-session.commit()
+highest_bid = session.query(Bid).order_by(desc(Bid.price)).first()
+print("{} had the highest bid at ${}".format(highest_bid.bidder.username, highest_bid.price))
